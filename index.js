@@ -35,8 +35,8 @@ const userValidationMiddlewares = [
   check('name').isLength({ min: 2 }),
 ];
 
-app.post(
-  '/api/users',
+app.put(
+  '/api/users/:id',
   userValidationMiddlewares,
   (req, res) => {
     const errors = validationResult(req);
@@ -44,7 +44,9 @@ app.post(
       return res.status(422).json({ errors: errors.array() });
     }
     // send an SQL query to get all users
-    return connection.query('INSERT INTO user SET ?', req.body, (err, results) => {
+    const formData = req.body;
+    const id = req.params.id;
+    return connection.query('UPDATE user SET ? WHERE id = ?', [formData, id], (err, results) => {
       if (err) {
         // If an error has occurred, then the client is informed of the error
         return res.status(500).json({
@@ -53,7 +55,7 @@ app.post(
         });
       }
       // We use the insertId attribute of results to build the WHERE clause
-      return connection.query('SELECT * FROM user WHERE id = ?', results.insertId, (err2, records) => {
+      return connection.query('SELECT * FROM user WHERE id = ?', id, (err2, records) => {
         if (err2) {
           return res.status(500).json({
             error: err2.message,
@@ -70,7 +72,7 @@ app.post(
         // This will help the client know where the new resource can be found!
         const location = `http://${host}${req.url}/${user.id}`;
         return res
-          .status(201)
+          .status(200)
           .set('Location', location)
           .json(user);
       });
